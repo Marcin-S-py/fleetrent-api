@@ -66,3 +66,13 @@ class ShiftResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class MonthlyReportResponse(BaseModel):
+    year: int
+    month: int
+    total_gross_earnings: float
+    total_fuel_cost: float
+    net_company_profit: float
+
+    class Config:
+        from_attributes = True
