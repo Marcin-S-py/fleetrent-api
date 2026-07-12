@@ -43,6 +43,7 @@ def read_cars(db: SessionDep):
 @app.post("/shifts/start", response_model=Shift)
 def shift_start(driver_id: int, car_id: int, db: SessionDep):
     start_time = datetime.now()
+
     car = db.get(Car, car_id)
     driver = db.get(Driver, driver_id)
 
@@ -61,3 +62,42 @@ def shift_start(driver_id: int, car_id: int, db: SessionDep):
     db.commit()
     db.refresh(new_shift)
     return new_shift
+
+@app.put("/shifts/{shift_id}/end", response_model=Shift)
+def shift_end(shift_id: int, end_mileage: int, gross_earnings: float, fuel_cost: float, db: SessionDep):
+    end_time = datetime.now()
+
+    shift = db.get(Shift, shift_id)
+
+    if not shift:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The shift doesn't exist")
+    if shift.end_time is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Shift already ended")
+    
+    car = db.get(Car, shift.car_id)
+    driver = db.get(Driver, shift.driver_id)
+    
+    if not driver:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The driver is not available")
+    
+    if not car:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The car is not available")
+    if car.status != "active":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The car is not in use")
+    
+    if end_mileage < shift.start_mileage:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Mileage can't be lower than before")
+    
+    car.status = "available"
+    car.current_mileage = end_mileage
+
+    shift.net_company_profit = gross_earnings - (gross_earnings * driver.commission_rate) - fuel_cost
+    shift.end_time = end_time
+    shift.end_mileage = end_mileage
+    shift.gross_earnings = gross_earnings
+    shift.fuel_cost = fuel_cost
+
+    db.commit()
+    db.refresh(shift)
+    return shift
+    
