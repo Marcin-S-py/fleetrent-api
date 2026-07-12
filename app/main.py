@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from app.database import create_db_and_tables, SessionDep
-from app.models import Driver, Car
+from app.models import Driver, Car, Shift
 from sqlmodel import select
+from datetime import datetime
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,3 +39,25 @@ def create_car(car: Car, db: SessionDep):
 def read_cars(db: SessionDep):
     cars = db.exec(select(Car)).all()
     return cars
+
+@app.post("/shifts/start", response_model=Shift)
+def shift_start(driver_id: int, car_id: int, db: SessionDep):
+    start_time = datetime.now()
+    car = db.get(Car, car_id)
+    driver = db.get(Driver, driver_id)
+
+    if not driver:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The driver is not available")
+
+    if not car:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The car is not available")
+    if car.status == "active":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The car is in use")
+    
+    car.status = "active"
+    new_shift = Shift(driver_id=driver_id, car_id=car_id, start_time=start_time, start_mileage=car.current_mileage)
+
+    db.add(new_shift)
+    db.commit()
+    db.refresh(new_shift)
+    return new_shift
