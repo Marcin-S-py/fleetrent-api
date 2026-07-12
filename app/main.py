@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Depends
 from app.database import create_db_and_tables, SessionDep
-from app.models import Driver, Car, Shift
+from app.models import Driver, Car
 from app import crud, schemas
 from sqlmodel import select
-from datetime import datetime
+from app.authorization import check_api_key
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -18,7 +18,7 @@ def home():
     return {"status": "FleetRent API is running successfully"}
 
 @app.post("/drivers/", response_model=schemas.DriverResponse)
-def create_driver(driver: schemas.DriverCreate, db: SessionDep):
+def create_driver(driver: schemas.DriverCreate, db: SessionDep, _: str = Depends(check_api_key)):
     return crud.create_driver(db=db, driver_data=driver)
 
 @app.get("/drivers/", response_model=list[schemas.DriverResponse])
@@ -27,7 +27,7 @@ def read_drivers(db: SessionDep):
     return drivers
 
 @app.post("/cars/", response_model=schemas.CarResponse)
-def create_car(car: schemas.CarCreate, db: SessionDep):
+def create_car(car: schemas.CarCreate, db: SessionDep, _: str = Depends(check_api_key)):
     return crud.create_car(db=db, car_data=car)
 
 @app.get("/cars/", response_model=list[schemas.CarResponse])
