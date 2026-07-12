@@ -1,13 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from app.database import create_db_and_tables
+from app import models
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
     yield
 
-app = FastAPI(title="FleetRent API")
+app = FastAPI(title="FleetRent API", lifespan=lifespan)
 
 @app.get("/")
 def home():
