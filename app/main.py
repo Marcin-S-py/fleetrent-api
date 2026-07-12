@@ -26,3 +26,15 @@ def create_driver(driver: Driver, db: SessionDep):
 def read_drivers(db: SessionDep):
     drivers = db.exec(select(Driver)).all()
     return drivers
+
+@app.post("/cars/", response_model=Car)
+def create_car(car: Car, db: SessionDep):
+    db.add(car)
+    db.commit()
+    db.refresh(car)
+    return car
+
+@app.get("/cars/", response_model=list[Car])
+def read_cars(db: SessionDep):
+    cars = db.exec(select(Car)).all()
+    return cars
