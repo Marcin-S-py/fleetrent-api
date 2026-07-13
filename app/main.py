@@ -1,5 +1,14 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+import logging
+
+logging.basicConfig(
+    level = logging.INFO,
+    format = "%(asctime)s [%(levelname)s] %(message)s",
+)
+
+logger = logging.getLogger("FleetRent")
+
 from app.database import create_db_and_tables
 from app.routers import drivers, cars, shifts, reports
 

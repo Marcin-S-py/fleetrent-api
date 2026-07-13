@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException, status
 from app.database import SessionDep
 from app import crud, schemas
+import logging
 
 router = APIRouter(
     prefix = "/shifts",
     tags = ["Shift"]
 )
+
+logger = logging.getLogger("FleetRent")
 
 @router.post("/start", response_model=schemas.ShiftResponse)
 def shift_start(payload: schemas.ShiftStart, db: SessionDep):
@@ -13,14 +16,18 @@ def shift_start(payload: schemas.ShiftStart, db: SessionDep):
     driver = crud.get_driver(db, payload.driver_id)
 
     if not driver:
+        logger.warning(f"Failed to start shift: Driver ID {payload.driver_id} not found.")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The driver is not available")
 
     if not car:
+        logger.warning(f"Failed to start shift: Car ID {payload.car_id} not found.")
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="The car is not available")
     if car.status == "active":
+        logger.warning(f"Failed to start shift: Car ID {payload.car_id} is already in use.")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="The car is in use")
     
     car.status = "active"
+    logger.info(f"Shift started successfully for Driver ID {payload.driver_id} using Car ID {payload.car_id}.")
     return crud.start_driver_shift(db, driver_id=payload.driver_id, car_id=payload.car_id, start_mileage=car.current_mileage)
 
 @router.put("/{shift_id}/end", response_model=schemas.ShiftResponse)
