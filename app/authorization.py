@@ -1,4 +1,4 @@
-from fastapi import Security, Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status
 from fastapi.security import APIKeyHeader
 
 SECRET_API_KEY = "i_have_to_write_something_here"
